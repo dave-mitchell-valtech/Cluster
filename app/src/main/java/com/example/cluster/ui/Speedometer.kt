@@ -6,13 +6,13 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -93,6 +93,7 @@ fun Speedometer(
         paintMainColor.strokeWidth = it.first
         it.second to longLength
     }
+    val pointerColor = MaterialTheme.colorScheme.onSurface // Color.Black
 
     Canvas(
         modifier = Modifier
@@ -135,7 +136,6 @@ fun Speedometer(
                 )
 
                 // Pointer
-                val pointerColor = Color.Black
                 val pointerPaint = Paint().apply { color = pointerColor }
                 drawCircle(pointerColor, 14f, centerOffset)
                 canvas.drawPath(
