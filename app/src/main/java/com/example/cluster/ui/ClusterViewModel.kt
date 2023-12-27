@@ -10,7 +10,6 @@ import android.icu.number.Notation
 import android.icu.number.NumberFormatter
 import android.icu.number.Precision
 import android.icu.util.MeasureUnit
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
@@ -55,7 +54,6 @@ class ClusterViewModel(application: Application) : AndroidViewModel(application)
     }
 
     init {
-        Log.d("TALLDAVE", "foo")
         VEHICLE_PROPERTY_KEYS.forEach { key ->
             carPropertyManager.registerCallback(carPropertyListener, key, SENSOR_RATE)
         }
@@ -85,6 +83,15 @@ class ClusterViewModel(application: Application) : AndroidViewModel(application)
             VehicleUnit.METER_PER_SEC -> MeasureUnit.METER_PER_SECOND to speed
             VehicleUnit.KILOMETERS_PER_HOUR -> MeasureUnit.KILOMETER_PER_HOUR to speed * 3.6f
             VehicleUnit.MILES_PER_HOUR -> MeasureUnit.MILE_PER_HOUR to speed * 2.2369f
+            else -> throw IllegalArgumentException("No support for unit=$vehicleUnit")
+        }
+    }
+
+    fun getSpeedRatio(vehicleUnit: Int): Float {
+        return when (vehicleUnit) {
+            VehicleUnit.METER_PER_SEC -> 1f
+            VehicleUnit.KILOMETERS_PER_HOUR -> 3.6f
+            VehicleUnit.MILES_PER_HOUR -> 2.2369f
             else -> throw IllegalArgumentException("No support for unit=$vehicleUnit")
         }
     }

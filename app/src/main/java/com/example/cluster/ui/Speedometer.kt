@@ -24,26 +24,38 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.util.lerp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlin.math.PI
-import kotlin.math.abs
+import kotlin.math.absoluteValue
+import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.sin
 
 @Composable
 fun Speedometer(
-    maxSpeed: Float = 80f,
-    arcDegreeRange: Int = 270,
-    numberOfMarkers: Int = 40,
+    maxTheoreticalSpeed: Float = 80f,
+    arcDegreeRange: Float = 270f,
     clusterViewModel: ClusterViewModel = viewModel(),
 ) {
-    // Static properties
-    val wrapDegrees = (arcDegreeRange - 180) / 2f
-    val startArcAngle = 180 - wrapDegrees
-    val startStepAngle = -wrapDegrees.toInt()
-    val degreesMarkerStep = arcDegreeRange / numberOfMarkers
-
-    // Representations of speed
     val currentSpeed by remember { clusterViewModel.currentSpeed }
-    val absoluteSpeed = abs(currentSpeed)
+    val currentUnit by remember { clusterViewModel.currentUnit }
+
+    // Static properties
+    val preferredUnitsPerTick = 20
+    val minorTicksPerMajorTick = 5
+
+    val majorTickCount = clusterViewModel
+        .getSpeedInfo(maxTheoreticalSpeed, currentUnit)
+        .second
+        .let { it / preferredUnitsPerTick }
+        .let(::ceil)
+        .toInt()
+    val speedRatio = clusterViewModel.getSpeedRatio(currentUnit)
+    val maxSpeed = majorTickCount * preferredUnitsPerTick / speedRatio
+    val tickCount = majorTickCount * minorTicksPerMajorTick
+    val (startArcAngle, startStepAngle) = ((arcDegreeRange - 180) / 2f)
+        .let { (180 - it) to (-it.toInt()) }
+
+    // Other representations of speed
+    val absoluteSpeed = currentSpeed.absoluteValue
     val interpolatedAbsoluteSpeed by animateFloatAsState(
         label = "speed",
         targetValue = absoluteSpeed,
@@ -52,11 +64,12 @@ fun Speedometer(
             stiffness = 200f,
         ),
     )
-    val composeSpeedDegree = lerp(
+    val interpolatedAbsoluteSpeedDegree = lerp(
         0f,
-        arcDegreeRange.toFloat(),
+        arcDegreeRange,
         (interpolatedAbsoluteSpeed / maxSpeed).coerceAtMost(1f),
     )
+    val degrees = ((startStepAngle - 180 + interpolatedAbsoluteSpeedDegree) * PI / 180f).toFloat()
 
     // Colors
     val (mainColor, secondaryColor) = when {
@@ -75,7 +88,7 @@ fun Speedometer(
     )
     val getLineEndsX = fun(longLength: Float, counter: Int): Pair<Float, Float> = when {
         counter % 5 == 0 -> 3f to longLength * .7f
-        else -> 1f to longLength * .8f
+        else -> 1f to longLength * 0.8f
     }.let {
         paintMainColor.strokeWidth = it.first
         it.second to longLength
@@ -83,18 +96,17 @@ fun Speedometer(
 
     Canvas(
         modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(1f),
+            .aspectRatio(1f)
+            .fillMaxWidth(),
         onDraw = {
             // Sizes and positions
-            val w = drawContext.size.width
-            val h = drawContext.size.height
-            val centerOffset = Offset(w / 2f, h / 2f)
-            val quarterOffset = Offset(w / 4f, h / 4f)
-            val centerArcSize = Size(w / 2f, h / 2f)
-            val centerArcStroke = Stroke(20f, 0f, StrokeCap.Butt)
-            val center = PointF(w / 2f, h / 2f)
-            val degrees = ((startStepAngle - 180 + composeSpeedDegree) * PI / 180f).toFloat()
+            val center = PointF(drawContext.size.width / 2f, drawContext.size.height / 2f)
+            val centerOffset = Offset(center.x, center.y)
+            val quarterOffset = Offset(center.x / 2f, center.y / 2f)
+            val centerArcSize = Size(center.x, center.y)
+            val tickBaseLength = center.x / 2.8f
+            val centerArcStroke = Stroke(center.x / 10f, 0f, StrokeCap.Butt)
+
             val firstPoint = getPointOnCircle(center, 5f, degrees - 90f)
             val secondPoint = getPointOnCircle(center, 5f, degrees + 90f)
             val farPoint = getPointOnCircle(center, (centerArcSize.width / 2f), degrees)
@@ -104,7 +116,7 @@ fun Speedometer(
                 drawArc(
                     secondaryColor,
                     startArcAngle,
-                    arcDegreeRange.toFloat(),
+                    arcDegreeRange,
                     false,
                     topLeft = quarterOffset,
                     size = centerArcSize,
@@ -115,7 +127,7 @@ fun Speedometer(
                 drawArc(
                     mainColor,
                     startArcAngle,
-                    composeSpeedDegree,
+                    interpolatedAbsoluteSpeedDegree,
                     false,
                     topLeft = quarterOffset,
                     size = centerArcSize,
@@ -138,16 +150,16 @@ fun Speedometer(
                 )
 
                 // Drawing tic marks
-                val arcRange = startStepAngle..(startStepAngle + arcDegreeRange)
-                val ticMarkIterable = (arcRange step degreesMarkerStep).withIndex()
-                for ((counter, rotation) in ticMarkIterable) {
-                    val (lineStartX, lineEndX) = getLineEndsX(70f, counter)
+                (0..tickCount).forEach { counter ->
+                    val degreesMarkerStep = arcDegreeRange / tickCount
+                    val rotation = counter * degreesMarkerStep + startStepAngle
+                    val (lineStartX, lineEndX) = getLineEndsX(tickBaseLength, counter)
                     canvas.run {
                         save()
-                        rotate(rotation.toFloat(), w / 2f, h / 2f)
+                        rotate(rotation, center.x, center.y)
                         drawLine(
-                            Offset(lineStartX, h / 2f),
-                            Offset(lineEndX, h / 2f),
+                            Offset(lineStartX, center.y),
+                            Offset(lineEndX, center.y),
                             paintMainColor,
                         )
                         restore()
@@ -155,23 +167,49 @@ fun Speedometer(
                 }
 
                 // Speed tic labels
-                val majorTicMarkIterable = (0..160 step 20)
+                val maxPreferredUnits = majorTickCount * preferredUnitsPerTick
+                val rangeOfPreferredUnits = 0..maxPreferredUnits
+                val majorTicMarkIterable = (rangeOfPreferredUnits step preferredUnitsPerTick)
+                val characterWidth = 10f
+                val characterHeight = 12f
                 for (speedInPreferredUnit in majorTicMarkIterable) {
-                    val speedInMetersPerSecond = speedInPreferredUnit / 3.6f // TODO: Do not assume kmph is preferred
-                    val comSpeDeg = lerp(
-                        0f,
-                        arcDegreeRange.toFloat(),
-                        (speedInMetersPerSecond / maxSpeed).coerceAtMost(1f),
+                    val speedPercentage = (speedInPreferredUnit / speedRatio / maxSpeed)
+                        .coerceAtMost(1f)
+
+                    val comSpeDeg = lerp(0f, arcDegreeRange, speedPercentage)
+                    val xOffsetBase = characterWidth * speedInPreferredUnit.toString().length / 2f
+                    val textPosition = getPointOnCircle(
+                        center,
+                        centerArcSize.width * 0.84f,
+                        ((startStepAngle - 180 + comSpeDeg) * PI / 180f).toFloat(),
                     )
-                    val deg = ((startStepAngle - 180 + comSpeDeg) * PI / 180f).toFloat()
-                    val textPosition = getPointOnCircle(center, centerArcSize.width * .9f, deg)
+                    val leftPercentage = speedPercentage * 2f
+                    val rightPercentage = (speedPercentage - 0.5f) * 2f
+                    val xOffset = when {
+                        speedPercentage < 0.5f -> lerp(0f, xOffsetBase, leftPercentage)
+                        speedPercentage > 0.5f -> lerp(-xOffsetBase, 0f, rightPercentage)
+                        else -> 0f
+                    }
+                    val yOffset = when {
+                        speedPercentage < 0.5f -> lerp(characterHeight, 0f, leftPercentage)
+                        speedPercentage > 0.5f -> lerp(0f, characterHeight, rightPercentage)
+                        else -> 0f
+                    }
+                    val tickLabelAlignment = when {
+                        speedPercentage < 0.5f -> android.graphics.Paint.Align.RIGHT
+                        speedPercentage > 0.5f -> android.graphics.Paint.Align.LEFT
+                        else -> android.graphics.Paint.Align.CENTER
+                    }
+                    val tickLabelPaint = Paint().asFrameworkPaint().apply {
+                        color = pointerColor.toArgb()
+                        textSize = tickBaseLength * 0.3f
+                        textAlign = tickLabelAlignment
+                    }
                     canvas.nativeCanvas.drawText(
                         "$speedInPreferredUnit",
-                        textPosition.x,
-                        textPosition.y,
-                        Paint().asFrameworkPaint().apply {
-                            this.color = pointerColor.toArgb()
-                        },
+                        textPosition.x + xOffset,
+                        textPosition.y + yOffset,
+                        tickLabelPaint,
                     )
                 }
             }
