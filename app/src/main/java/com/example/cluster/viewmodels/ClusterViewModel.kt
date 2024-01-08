@@ -1,4 +1,4 @@
-package com.example.cluster.ui
+package com.example.cluster.viewmodels
 
 import android.app.Application
 import android.car.Car
@@ -14,7 +14,9 @@ import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.AndroidViewModel
+import com.example.cluster.utilities.SpeedometerCalculator
 import java.util.Locale
+import kotlin.math.absoluteValue
 
 class ClusterViewModel(application: Application) : AndroidViewModel(application) {
     companion object {
@@ -39,6 +41,16 @@ class ClusterViewModel(application: Application) : AndroidViewModel(application)
     val currentSpeed = mutableStateOf(0f)
     val currentSpeedUnit = mutableStateOf(VehicleUnit.METER_PER_SEC)
 
+    // Derived states
+    val speedLabel = mutableStateOf("")
+    val unitLabel = mutableStateOf("")
+    val textColor = mutableStateOf(Color.Unspecified)
+    val backgroundColor = mutableStateOf(Color.Unspecified)
+    val mainColor = mutableStateOf(Color.Unspecified)
+    val secondaryColor = mutableStateOf(Color.Unspecified)
+
+    private val calculator = SpeedometerCalculator()
+
     private val carPropertyManager = Car
         .createCar(application.applicationContext)
         .getCarManager(Car.PROPERTY_SERVICE) as CarPropertyManager
@@ -49,6 +61,7 @@ class ClusterViewModel(application: Application) : AndroidViewModel(application)
                 KEY_VEHICLE_SPEED -> currentSpeed.value = p0.value as Float
                 KEY_VEHICLE_SPEED_DISPLAY_UNITS -> currentSpeedUnit.value = p0.value as Int
             }
+            updateDerivedValues()
         }
 
         override fun onErrorEvent(p0: Int, p1: Int) {
@@ -68,26 +81,58 @@ class ClusterViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun getSpeedLabel(speedInPreferredUnit: Float, preferredUnit: MeasureUnit): String {
+    private fun updateDerivedValues() {
+        val currentSpeed = currentSpeed.value
+        val absoluteSpeed = currentSpeed.absoluteValue
+        val (preferredSpeedUnit, speedInPreferredUnit) = calculator
+            .getSpeedInfo(absoluteSpeed, currentSpeedUnit.value)
+
+        getSpeedLabels(preferredSpeedUnit, speedInPreferredUnit).run {
+            speedLabel.value = first
+            unitLabel.value = second
+        }
+        getSpeedLabelColors(currentSpeed).run {
+            textColor.value = first
+            backgroundColor.value = second
+        }
+        getDialColors(absoluteSpeed).run {
+            mainColor.value = first
+            secondaryColor.value = second
+        }
+    }
+
+    private fun getSpeedLabels(
+        preferredSpeedUnit: MeasureUnit,
+        speedInPreferredUnit: Float,
+    ): Pair<String, String> {
         return NumberFormatter
             .withLocale(Locale.getDefault())
             .notation(Notation.compactShort())
             .precision(Precision.maxFraction(0))
-            .unit(preferredUnit)
+            .unit(preferredSpeedUnit)
             .format(speedInPreferredUnit)
             .toString()
+            .split("\\s+".toRegex())
+            .let {
+                when (it.size > 1) {
+                    true -> Pair(it[0], it[1])
+                    else -> Pair(it[0], "???")
+                }
+            }
     }
 
-    fun getSpeedLabelColors(speed: Float) = when {
+    private fun getSpeedLabelColors(speed: Float) = when {
         speed < 0f -> Color.Black to COLOR_CAUTION
         else -> Color.Unspecified to Color.Unspecified
     }
 
-    fun getDialColors(absoluteSpeed: Float) = when {
-        absoluteSpeed < CAUTION_SPEED_THRESHOLD -> COLOR_NORMAL
-        absoluteSpeed < WARNING_SPEED_THRESHOLD -> COLOR_CAUTION
-        else -> COLOR_WARNING
-    }.let {
-        it to it.copy(alpha = 0.2f)
+    private fun getDialColors(absoluteSpeed: Float): Pair<Color, Color> {
+        return when {
+            absoluteSpeed < CAUTION_SPEED_THRESHOLD -> COLOR_NORMAL
+            absoluteSpeed < WARNING_SPEED_THRESHOLD -> COLOR_CAUTION
+            else -> COLOR_WARNING
+        }.let {
+            it to it.copy(alpha = 0.2f)
+        }
     }
 }

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -19,10 +20,10 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun DigitalSpeed(
-    speedLabel: String,
-    unitLabel: String,
-    textColor: Color,
-    backgroundColor: Color,
+    speedLabel: MutableState<String>,
+    unitLabel: MutableState<String>,
+    textColor: MutableState<Color>,
+    backgroundColor: MutableState<Color>,
 ) {
     Column(
         modifier = Modifier
@@ -33,10 +34,10 @@ fun DigitalSpeed(
         verticalArrangement = Arrangement.Bottom,
     ) {
         Text(
-            text = speedLabel,
-            color = textColor,
+            text = speedLabel.value,
+            color = textColor.value,
             modifier = Modifier
-                .background(backgroundColor)
+                .background(backgroundColor.value)
                 .padding(horizontal = 20.dp),
             style = TextStyle(
                 fontSize = 50.sp,
@@ -44,7 +45,7 @@ fun DigitalSpeed(
             ),
         )
         Text(
-            text = unitLabel,
+            text = unitLabel.value,
             style = TextStyle(
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,

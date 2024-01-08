@@ -1,4 +1,4 @@
-package com.example.cluster.ui
+package com.example.cluster.utilities
 
 import android.car.VehicleUnit
 import android.graphics.PointF
