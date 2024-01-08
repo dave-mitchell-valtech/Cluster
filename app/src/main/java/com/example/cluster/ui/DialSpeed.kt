@@ -5,16 +5,18 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import com.example.cluster.utilities.SpeedometerCalculator
+import kotlinx.coroutines.flow.StateFlow
 
 private val calculator = SpeedometerCalculator()
 
 @Composable
 fun DialSpeed(
-    speed: MutableState<Float>,
-    speedUnit: MutableState<Int>,
+    speed: StateFlow<Float>,
+    speedUnit: StateFlow<Int>,
     mainColor: MutableState<Color>,
     secondaryColor: MutableState<Color>,
     preferredUnitsPerMajorTick: Int = 20,
@@ -22,19 +24,21 @@ fun DialSpeed(
     maxRatedSpeed: Float = 80f,
     arcDegreeRange: Float = 270f,
 ) {
+    val currentSpeed = speed.collectAsState()
+    val currentSpeedUnit = speedUnit.collectAsState()
     val majorTickCount = calculator.getMajorTickCount(
         maxRatedSpeed,
-        speedUnit.value,
+        currentSpeedUnit.value,
         preferredUnitsPerMajorTick,
     )
     val tickCount = majorTickCount * minorTicksPerMajorTick
     val maxSpeedInPreferredUnit = majorTickCount * preferredUnitsPerMajorTick
-    val maxSpeed = maxSpeedInPreferredUnit / calculator.getSpeedRatio(speedUnit.value)
+    val maxSpeed = maxSpeedInPreferredUnit / calculator.getSpeedRatio(currentSpeedUnit.value)
     val foregroundColor = MaterialTheme.colorScheme.onSurface
 
     Box(modifier = Modifier.wrapContentSize()) {
         DialSpeedIndication(
-            speed = speed,
+            speed = currentSpeed,
             maxSpeed = maxSpeed,
             mainColor = mainColor,
             secondaryColor = secondaryColor,

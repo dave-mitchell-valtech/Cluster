@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.center
@@ -25,7 +26,7 @@ private val calculator = SpeedometerCalculator()
 
 @Composable
 fun DialSpeedIndication(
-    speed: MutableState<Float>,
+    speed: State<Float>,
     maxSpeed: Float,
     mainColor: MutableState<Color>,
     secondaryColor: MutableState<Color>,
