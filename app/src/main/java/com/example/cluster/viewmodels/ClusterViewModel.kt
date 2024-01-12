@@ -1,15 +1,21 @@
 package com.example.cluster.viewmodels
 
+import android.animation.ValueAnimator
 import android.app.Application
+import android.content.pm.PackageManager
 import android.icu.number.Notation
 import android.icu.number.NumberFormatter
 import android.icu.number.Precision
 import android.icu.util.MeasureUnit
+import android.view.animation.AccelerateDecelerateInterpolator
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Color
+import androidx.core.animation.doOnEnd
+import androidx.core.animation.doOnStart
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cluster.ClusterApp
+import com.example.cluster.data.MockVehiclePropertyRepository
 import com.example.cluster.utilities.SpeedometerCalculator
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -25,8 +31,13 @@ class ClusterViewModel(application: Application) : AndroidViewModel(application)
         private const val WARNING_SPEED_THRESHOLD = 40f
     }
 
-    private val repo = (application as ClusterApp).vehiclePropertyRepository
-    val currentSpeed = repo.currentSpeed
+    private val repo = (application as ClusterApp).run {
+        when (isRunningOnAutomotivePlatform(packageManager)) {
+            true -> vehiclePropertyRepository
+            else -> MockVehiclePropertyRepository()
+        }
+    }
+    var currentSpeed = repo.currentSpeed
     val currentSpeedUnit = repo.currentSpeedUnit
 
     // Derived states
@@ -104,6 +115,22 @@ class ClusterViewModel(application: Application) : AndroidViewModel(application)
             else -> COLOR_WARNING
         }.let {
             it to it.copy(alpha = 0.2f)
+        }
+    }
+
+    private fun isRunningOnAutomotivePlatform(packageManager: PackageManager): Boolean {
+        return packageManager.hasSystemFeature(PackageManager.FEATURE_AUTOMOTIVE)
+    }
+
+    fun demo() {
+        viewModelScope.launch {
+            ValueAnimator.ofFloat(0f, 80.4672f, 0f).apply {
+                interpolator = AccelerateDecelerateInterpolator()
+                duration = 3000L
+                doOnStart { repo.paused = true }
+                doOnEnd { repo.paused = false }
+                addUpdateListener { repo.speed.value = it.animatedValue as Float }
+            }.start()
         }
     }
 }

@@ -5,9 +5,9 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.cluster.utilities.SpeedometerCalculator
 import kotlinx.coroutines.flow.StateFlow
 
@@ -24,8 +24,9 @@ fun DialSpeed(
     maxRatedSpeed: Float = 80f,
     arcDegreeRange: Float = 270f,
 ) {
-    val currentSpeed = speed.collectAsState()
-    val currentSpeedUnit = speedUnit.collectAsState()
+    val currentSpeed = speed.collectAsStateWithLifecycle()
+    val currentSpeedUnit = speedUnit.collectAsStateWithLifecycle()
+
     val majorTickCount = calculator.getMajorTickCount(
         maxRatedSpeed,
         currentSpeedUnit.value,

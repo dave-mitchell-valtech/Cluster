@@ -63,8 +63,9 @@ fun DialSpeedIndication(
             val centerArcSize = drawContext.size / 2f
             val centerArcStroke = Stroke(centerOffset.x / 10f, 0f, StrokeCap.Butt)
             val pointerLength = centerArcSize.width / 2f
-            val pointerFirstPoint = calculator.getPointOnCircle(center, 5f, degrees - 90f)
-            val pointerSecondPoint = calculator.getPointOnCircle(center, 5f, degrees + 90f)
+            val pointerWidth = centerOffset.x / 35f
+            val pointerFirstPoint = calculator.getPointOnCircle(center, pointerWidth, degrees - 90f)
+            val pointerSecondPoint = calculator.getPointOnCircle(center, pointerWidth, degrees + 90f)
             val pointerFarPoint = calculator.getPointOnCircle(center, pointerLength, degrees)
 
             // Available progress range
@@ -90,7 +91,7 @@ fun DialSpeedIndication(
             )
 
             // Pointer
-            drawCircle(foregroundPaint.color, 14f, centerOffset)
+            drawCircle(foregroundPaint.color, centerOffset.x / 15f, centerOffset)
             drawPath(
                 Path().apply {
                     moveTo(pointerFirstPoint.x, pointerFirstPoint.y)

@@ -5,6 +5,7 @@ import android.graphics.PointF
 import android.icu.util.MeasureUnit
 import android.util.SizeF
 import androidx.compose.ui.util.lerp
+import kotlin.math.absoluteValue
 import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.sin
@@ -15,10 +16,14 @@ class SpeedometerCalculator {
         speed: Float,
         vehicleUnit: Int,
     ): Pair<MeasureUnit, Float> = when (vehicleUnit) {
-        VehicleUnit.METER_PER_SEC -> MeasureUnit.METER_PER_SECOND to speed
+        VehicleUnit.METER_PER_SEC -> MeasureUnit.METER_PER_SECOND to speed.absoluteValue
         VehicleUnit.KILOMETERS_PER_HOUR -> MeasureUnit.KILOMETER_PER_HOUR to speed * 3.6f
         VehicleUnit.MILES_PER_HOUR -> MeasureUnit.MILE_PER_HOUR to speed * 2.2369f
         else -> throw IllegalArgumentException("No support for unit=$vehicleUnit")
+    }.apply {
+        if (second.absoluteValue != Float.POSITIVE_INFINITY) return@apply
+        "Return type is insufficient to represent speed in the desired unit"
+            .let { throw IllegalArgumentException(it) }
     }
 
     fun getSpeedRatio(vehicleUnit: Int): Float = when (vehicleUnit) {
