@@ -127,8 +127,8 @@ class ClusterViewModel(application: Application) : AndroidViewModel(application)
             ValueAnimator.ofFloat(0f, 80.4672f, 0f).apply {
                 interpolator = AccelerateDecelerateInterpolator()
                 duration = 3000L
-                doOnStart { repo.paused = true }
-                doOnEnd { repo.paused = false }
+                doOnStart { repo.speedPaused = true }
+                doOnEnd { repo.speedPaused = false }
                 addUpdateListener { repo.speed.value = it.animatedValue as Float }
             }.start()
         }

@@ -15,11 +15,14 @@ class SpeedometerCalculator {
     fun getSpeedInfo(
         speed: Float,
         vehicleUnit: Int,
-    ): Pair<MeasureUnit, Float> = when (vehicleUnit) {
-        VehicleUnit.METER_PER_SEC -> MeasureUnit.METER_PER_SECOND to speed.absoluteValue
-        VehicleUnit.KILOMETERS_PER_HOUR -> MeasureUnit.KILOMETER_PER_HOUR to speed * 3.6f
-        VehicleUnit.MILES_PER_HOUR -> MeasureUnit.MILE_PER_HOUR to speed * 2.2369f
-        else -> throw IllegalArgumentException("No support for unit=$vehicleUnit")
+    ): Pair<MeasureUnit, Float> = let {
+        val outputValue = speed * getSpeedRatio(vehicleUnit)
+        when (vehicleUnit) {
+            VehicleUnit.METER_PER_SEC -> MeasureUnit.METER_PER_SECOND to outputValue
+            VehicleUnit.KILOMETERS_PER_HOUR -> MeasureUnit.KILOMETER_PER_HOUR to outputValue
+            VehicleUnit.MILES_PER_HOUR -> MeasureUnit.MILE_PER_HOUR to outputValue
+            else -> throw IllegalArgumentException("No support for unit=$vehicleUnit")
+        }
     }.apply {
         if (second.absoluteValue != Float.POSITIVE_INFINITY) return@apply
         "Return type is insufficient to represent speed in the desired unit"

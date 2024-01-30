@@ -48,19 +48,14 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
-//    testOptions {
-//        unitTests {
-//            isIncludeAndroidResources = true
-//            isReturnDefaultValues = true
-//        }
-//    }
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            isReturnDefaultValues = true
+        }
+    }
 
     useLibrary("android.car")
-}
-
-tasks.withType<Test> {
-    //testLogging.showExceptions = true
-    useJUnitPlatform()
 }
 
 dependencies {
@@ -77,7 +72,7 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     // testImplementation("org.junit.jupiter:junit-jupiter:5.8.1")
     testImplementation("junit:junit:4.13.2")
-    // testImplementation("org.robolectric:robolectric:4.11.1")
+    testImplementation("org.robolectric:robolectric:4.11.1")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
     androidTestImplementation(platform("androidx.compose:compose-bom:2023.03.00"))
